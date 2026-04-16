@@ -1,0 +1,18 @@
+{
+  "name": "JulyToolkit.Editor",
+  "rootNamespace": "JulyToolkit.Editor",
+  "references": [
+    "JulyToolkit.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

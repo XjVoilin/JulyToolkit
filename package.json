@@ -1,0 +1,19 @@
+{
+  "name": "com.july.toolkit",
+  "version": "1.0.0",
+  "displayName": "JulyToolkit",
+  "description": "可复用 UI/表现层工具组件，JulyCore + JulyArch 的扩展包",
+  "unity": "2021.3",
+  "dependencies": {
+    "com.july.core": "1.0.55",
+    "com.july.arch": "1.0.17"
+  },
+  "keywords": [
+    "ui",
+    "components",
+    "toolkit"
+  ],
+  "author": {
+    "name": "July"
+  }
+}
