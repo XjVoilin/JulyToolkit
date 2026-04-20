@@ -8,7 +8,7 @@ namespace JulyToolkit
     /// </summary>
     public interface ISceneTransitionView
     {
-        UniTask PlayEnterAsync();
+        UniTask PlayEnterAsync(object options = null);
         UniTask PlayExitAsync();
     }
 }

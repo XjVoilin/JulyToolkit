@@ -11,7 +11,6 @@ Shader "UI/InvertedStencil"
     Properties
     {
         [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
-        _Color ("Tint", Color) = (1,1,1,1)
 
         _StencilComp ("Stencil Comparison", Float) = 6
         _Stencil ("Stencil ID", Float) = 1
@@ -83,7 +82,6 @@ Shader "UI/InvertedStencil"
             };
 
             sampler2D _MainTex;
-            fixed4 _Color;
             fixed4 _TextureSampleAdd;
             float4 _ClipRect;
             float4 _MainTex_ST;
@@ -98,7 +96,12 @@ Shader "UI/InvertedStencil"
 
                 OUT.texcoord = TRANSFORM_TEX(v.texcoord, _MainTex);
 
-                OUT.color = v.color * _Color;
+                #ifdef UNITY_COLORSPACE_GAMMA
+                OUT.color = v.color;
+                #else
+                half4 c = clamp(v.color, 0, 1);
+                OUT.color = half4(GammaToLinearSpace(c.rgb), c.a);
+                #endif
                 return OUT;
             }
 

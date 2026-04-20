@@ -37,7 +37,7 @@ namespace JulyToolkit
         /// <summary>
         /// 入场：打开过渡窗口 → 播放入场动画 → 清理业务 UI / 音效
         /// </summary>
-        public static async UniTask EnterAsync(CancellationToken ct = default)
+        public static async UniTask EnterAsync(object options = null, CancellationToken ct = default)
         {
             _activeView = null;
 
@@ -45,13 +45,13 @@ namespace JulyToolkit
                 _activeView = await GF.UI.OpenAsync(_loadingOptions, ct) as ISceneTransitionView;
 
             if (_activeView != null)
-                await _activeView.PlayEnterAsync();
+                await _activeView.PlayEnterAsync(options);
 
             GF.UI.CloseLayer(UILayer.Background);
             GF.UI.CloseLayer(UILayer.Normal);
             GF.UI.CloseLayer(UILayer.Popup);
             GF.UI.CloseLayer(UILayer.Top);
-            GF.Audio.StopAllSFX();
+            GF.Audio.StopAllSfx();
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace JulyToolkit
             }
 
             if (_loadingOptions != null)
-                await GF.UI.CloseAsync(_loadingOptions.WindowIdentifier.ID);
+                await GF.UI.CloseAsync(_loadingOptions.WindowIdentifier.ID, cancellationToken: ct);
         }
     }
 }
