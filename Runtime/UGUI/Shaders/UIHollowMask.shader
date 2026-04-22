@@ -13,7 +13,6 @@
 //   2. Material 上设 _UVScale = childSize / parentSize
 //   3. overlay 颜色来自 Image.color（vertex color），不使用纹理 RGB
 //   4. 纹理不透明处 = 镂空洞口，与 Mask + InvertedStencil 语义一致
-//   5. _EnableHole 控制镂空开关：0 = 纯色遮挡，1 = 镂空，由 C# 代码设置
 Shader "UI/HollowMask"
 {
     Properties
@@ -21,7 +20,6 @@ Shader "UI/HollowMask"
         [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
         _Softness ("Edge Softness", Range(0.001, 0.15)) = 0.02
         _UVScale ("UV Scale (Child/Parent)", Vector) = (1, 1, 0, 0)
-        [Toggle] _EnableHole ("Enable Hole", Float) = 1
 
         _StencilComp ("Stencil Comparison", Float) = 8
         _Stencil ("Stencil ID", Float) = 0
@@ -97,7 +95,6 @@ Shader "UI/HollowMask"
             float4 _MainTex_ST;
             float _Softness;
             float4 _UVScale;
-            float _EnableHole;
 
             v2f vert(appdata_t v)
             {
@@ -128,7 +125,7 @@ Shader "UI/HollowMask"
                 half fw = max(fwidth(texAlpha) * 0.5, _Softness);
                 texAlpha = smoothstep(0.5 - fw, 0.5 + fw, texAlpha);
 
-                half overlayAlpha = 1.0 - texAlpha * inBounds * step(0.5, _EnableHole);
+                half overlayAlpha = 1.0 - texAlpha * inBounds;
 
                 half4 color = IN.color;
                 color.a *= overlayAlpha;
