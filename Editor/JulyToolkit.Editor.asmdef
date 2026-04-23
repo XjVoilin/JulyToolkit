@@ -2,7 +2,8 @@
   "name": "JulyToolkit.Editor",
   "rootNamespace": "JulyToolkit.Editor",
   "references": [
-    "JulyToolkit.Runtime"
+    "JulyToolkit.Runtime",
+    "JulyCore.Runtime"
   ],
   "includePlatforms": [
     "Editor"
