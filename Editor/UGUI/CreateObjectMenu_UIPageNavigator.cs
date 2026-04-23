@@ -23,7 +23,7 @@ namespace JulyToolkit.Editor
             rootImg.raycastTarget = true;
 
             var navigator = root.AddComponent<UIPageNavigator>();
-            var transition = root.AddComponent<PageTransitionSlide>();
+            var slideTransition = root.AddComponent<PageTransitionSlide>();
 
             // --- Pages ---
             var pagesGo = CreateUI("Pages", root, Vector2.zero);
@@ -83,7 +83,9 @@ namespace JulyToolkit.Editor
             so.FindProperty("_indicatorRoot").objectReferenceValue = indicatorRt;
             so.FindProperty("_dotTemplate").objectReferenceValue =
                 dotTemplate.GetComponent<UIPageDot>();
-            so.FindProperty("_transition").objectReferenceValue = transition;
+            var transitionsProp = so.FindProperty("_transitions");
+            transitionsProp.arraySize = 1;
+            transitionsProp.GetArrayElementAtIndex(0).objectReferenceValue = slideTransition;
 
             so.ApplyModifiedPropertiesWithoutUndo();
 

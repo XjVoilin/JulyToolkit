@@ -6,39 +6,37 @@ using UnityEngine.Events;
 namespace JulyToolkit
 {
     /// <summary>
-    /// 通用翻页导航器：管理上一页/下一页/关闭按钮、页码圆点指示器和页面切换动画。
-    /// 页面内容由外部配置（Image、Spine 等均可），组件只负责显隐和过渡动画。
-    /// 项目组可继承并覆写 <see cref="OnCloseClicked"/> 实现自定义关闭逻辑。
-    /// 过渡效果通过 <see cref="PageTransition"/> 策略组件配置，可随时替换。
+    /// 通用翻页导航器：管理翻页按钮、页码圆点和页面过渡动画。
+    /// 页面内容由外部配置，组件只负责显隐和过渡。
+    /// 可继承覆写 <see cref="OnCloseClicked"/> 自定义关闭逻辑，
+    /// 覆写 <see cref="UpdateButtonStates"/> 控制按钮显隐。
+    /// 过渡效果通过 <see cref="PageTransition"/> 策略组件可插拔替换。
     /// </summary>
     [DisallowMultipleComponent]
     public class UIPageNavigator : MonoBehaviour
     {
-        [Header("Pages")]
+        [Header("页面")]
         [SerializeField] private List<RectTransform> _pages = new();
 
-        [Header("Navigation")]
+        [Header("导航按钮")]
         [SerializeField] private UISmartButton _btnPrev;
         [SerializeField] private UISmartButton _btnNext;
-        [SerializeField] private UISmartButton _btnClose;
+        [SerializeField] protected UISmartButton _btnClose;
 
-        [Header("Indicator")]
-        [Tooltip("圆点父节点（建议挂 HorizontalLayoutGroup）")]
+        [Header("页码指示器")]
         [SerializeField] private RectTransform _indicatorRoot;
-        [Tooltip("圆点模板：运行时会被复制，模板自身会被隐藏")]
         [SerializeField] private UIPageDot _dotTemplate;
 
-        [Header("Transition")]
-        [Tooltip("过渡效果组件，为空时直接切换无动画")]
-        [SerializeField] private PageTransition _transition;
-        [Tooltip("滑动距离（像素），0 = 自动取自身 RectTransform 宽度")]
+        [Header("过渡动画")]
+        [SerializeField] private List<PageTransition> _transitions = new();
+        [Tooltip("0 = 自动取自身 RectTransform 宽度")]
         [SerializeField] private float _slideDistance;
 
-        [Header("Options")]
+        [Header("选项")]
         [SerializeField] private bool _loop;
         [SerializeField] private int _startPage;
 
-        [Header("Events")]
+        [Header("事件")]
         public UnityEvent<int> onPageChanged = new();
         public UnityEvent onClose = new();
 
@@ -46,20 +44,15 @@ namespace JulyToolkit
         private bool _isTransitioning;
         private Tween _activeTween;
         private readonly List<UIPageDot> _dots = new();
-        private readonly List<Vector2> _cachedPositions = new();
 
         public int PageCount => _pages.Count;
         public int CurrentPage => _currentPage;
         public bool IsTransitioning => _isTransitioning;
 
-        #region Lifecycle
-
         private void Awake()
         {
-            CachePagePositions();
             InitDots();
             BindButtons();
-
             _currentPage = Mathf.Clamp(_startPage, 0, Mathf.Max(0, _pages.Count - 1));
             ShowPageImmediate(_currentPage);
         }
@@ -70,50 +63,40 @@ namespace JulyToolkit
             _activeTween?.Kill();
         }
 
-        #endregion
-
         #region Public API
 
         public void GoToPage(int index)
         {
-            if (_isTransitioning || _pages.Count == 0) return;
+            if (_isTransitioning || _pages.Count <= 1) return;
+            var resolved = ResolveIndex(index);
+            if (resolved < 0 || resolved == _currentPage) return;
 
-            index = WrapOrClamp(index);
-            if (index == _currentPage) return;
-
-            int direction = index > _currentPage ? 1 : -1;
-            if (_loop && _currentPage == 0 && index == _pages.Count - 1) direction = -1;
-            if (_loop && _currentPage == _pages.Count - 1 && index == 0) direction = 1;
-
-            DoTransition(_currentPage, index, direction);
+            var dir = resolved > _currentPage ? PageDirection.Forward : PageDirection.Backward;
+            if (_loop)
+            {
+                if (_currentPage == 0 && resolved == _pages.Count - 1) dir = PageDirection.Backward;
+                else if (_currentPage == _pages.Count - 1 && resolved == 0) dir = PageDirection.Forward;
+            }
+            DoTransition(resolved, dir);
         }
 
-        public void NextPage()
+        public void NextPage() => Step(PageDirection.Forward);
+        public void PrevPage() => Step(PageDirection.Backward);
+
+        private void Step(PageDirection direction)
         {
             if (_isTransitioning || _pages.Count <= 1) return;
-
-            int next = _currentPage + 1;
-            if (next >= _pages.Count)
-            {
-                if (_loop) next = 0;
-                else return;
-            }
-
-            DoTransition(_currentPage, next, 1);
+            var resolved = ResolveIndex(_currentPage + (int)direction);
+            if (resolved >= 0 && resolved != _currentPage)
+                DoTransition(resolved, direction);
         }
 
-        public void PrevPage()
+        private int ResolveIndex(int index)
         {
-            if (_isTransitioning || _pages.Count <= 1) return;
-
-            int prev = _currentPage - 1;
-            if (prev < 0)
-            {
-                if (_loop) prev = _pages.Count - 1;
-                else return;
-            }
-
-            DoTransition(_currentPage, prev, -1);
+            if (_pages.Count == 0) return -1;
+            if (_loop)
+                return ((index % _pages.Count) + _pages.Count) % _pages.Count;
+            return index >= 0 && index < _pages.Count ? index : -1;
         }
 
         #endregion
@@ -123,45 +106,46 @@ namespace JulyToolkit
         protected virtual void OnCloseClicked()
         {
             onClose?.Invoke();
+            gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// 每次翻页后调用。基类默认：非循环模式首页禁用上一页、末页禁用下一页，关闭按钮始终显示。
+        /// 子类覆写可实现如"关闭按钮仅末页显示"等自定义逻辑。
+        /// </summary>
+        protected virtual void UpdateButtonStates()
+        {
+            if (_loop)
+            {
+                if (_btnPrev) _btnPrev.SetInteractable(true);
+                if (_btnNext) _btnNext.SetInteractable(true);
+                return;
+            }
+            if (_btnPrev) _btnPrev.SetInteractable(_currentPage > 0);
+            if (_btnNext) _btnNext.SetInteractable(_currentPage < _pages.Count - 1);
         }
 
         #endregion
 
         #region Internal
 
-        private void CachePagePositions()
-        {
-            _cachedPositions.Clear();
-            foreach (var page in _pages)
-                _cachedPositions.Add(page ? page.anchoredPosition : Vector2.zero);
-        }
-
         private void InitDots()
         {
-            if (_dotTemplate == null || _indicatorRoot == null) return;
-
+            if (!_dotTemplate || !_indicatorRoot) return;
             _dotTemplate.gameObject.SetActive(false);
 
-            foreach (var dot in _dots)
-                if (dot) Destroy(dot.gameObject);
-            _dots.Clear();
-
-            for (int i = 0; i < _pages.Count; i++)
+            for (var i = 0; i < _pages.Count; i++)
             {
                 var dot = Instantiate(_dotTemplate, _indicatorRoot);
                 dot.gameObject.SetActive(true);
                 _dots.Add(dot);
             }
-
-            RefreshDots();
         }
 
         private void RefreshDots()
         {
-            for (int i = 0; i < _dots.Count; i++)
-            {
+            for (var i = 0; i < _dots.Count; i++)
                 if (_dots[i]) _dots[i].SetSelected(i == _currentPage);
-            }
         }
 
         private void BindButtons()
@@ -178,29 +162,14 @@ namespace JulyToolkit
             if (_btnClose) _btnClose.onClick.RemoveListener(OnCloseClicked);
         }
 
-        private void UpdateButtonStates()
-        {
-            if (_loop)
-            {
-                if (_btnPrev) _btnPrev.SetInteractable(true);
-                if (_btnNext) _btnNext.SetInteractable(true);
-                return;
-            }
-
-            if (_btnPrev) _btnPrev.SetInteractable(_currentPage > 0);
-            if (_btnNext) _btnNext.SetInteractable(_currentPage < _pages.Count - 1);
-        }
-
         private void ShowPageImmediate(int index)
         {
-            for (int i = 0; i < _pages.Count; i++)
+            for (var i = 0; i < _pages.Count; i++)
             {
                 if (!_pages[i]) continue;
                 _pages[i].gameObject.SetActive(i == index);
-                _pages[i].anchoredPosition = _cachedPositions[i];
                 _pages[i].localScale = Vector3.one;
             }
-
             _currentPage = index;
             UpdateButtonStates();
             RefreshDots();
@@ -213,45 +182,59 @@ namespace JulyToolkit
             return rt ? rt.rect.width : 800f;
         }
 
-        private void DoTransition(int fromIndex, int toIndex, int direction)
+        private void DoTransition(int toIndex, PageDirection direction)
         {
             _isTransitioning = true;
             _activeTween?.Kill();
 
-            var fromPage = _pages[fromIndex];
+            var fromPage = _pages[_currentPage];
             var toPage = _pages[toIndex];
-            var fromPos = _cachedPositions[fromIndex];
-            var toPos = _cachedPositions[toIndex];
+            var fromPos = fromPage.anchoredPosition;
 
             toPage.gameObject.SetActive(true);
 
-            if (_transition)
+            if (_transitions.Count > 0)
             {
+                var toOrigPos = toPage.anchoredPosition;
+                var done = false;
+
+                void Finish()
+                {
+                    if (done) return;
+                    done = true;
+                    toPage.anchoredPosition = toOrigPos;
+                    toPage.localScale = Vector3.one;
+                    CompleteTransition(fromPage, fromPos, toIndex);
+                }
+
                 var ctx = new PageTransitionContext
                 {
                     FromPage = fromPage,
                     ToPage = toPage,
                     FromOriginalPosition = fromPos,
-                    ToOriginalPosition = toPos,
+                    ToOriginalPosition = toOrigPos,
                     Direction = direction,
                     SlideDistance = GetSlideDistance()
                 };
 
-                _activeTween = _transition.Play(ctx);
-                _activeTween
+                var seq = DOTween.Sequence();
+                foreach (var t in _transitions)
+                    if (t) seq.Join(t.Play(ctx));
+
+                _activeTween = seq
                     .SetUpdate(true)
                     .SetLink(gameObject)
-                    .OnComplete(() => OnTransitionComplete(fromIndex, toIndex, fromPos));
+                    .OnComplete(Finish)
+                    .OnKill(Finish);
             }
             else
             {
-                OnTransitionComplete(fromIndex, toIndex, fromPos);
+                CompleteTransition(fromPage, fromPos, toIndex);
             }
         }
 
-        private void OnTransitionComplete(int fromIndex, int toIndex, Vector2 fromOrigPos)
+        private void CompleteTransition(RectTransform fromPage, Vector2 fromOrigPos, int toIndex)
         {
-            var fromPage = _pages[fromIndex];
             fromPage.gameObject.SetActive(false);
             fromPage.anchoredPosition = fromOrigPos;
             fromPage.localScale = Vector3.one;
@@ -263,14 +246,6 @@ namespace JulyToolkit
             UpdateButtonStates();
             RefreshDots();
             onPageChanged?.Invoke(_currentPage);
-        }
-
-        private int WrapOrClamp(int index)
-        {
-            if (_pages.Count == 0) return 0;
-            if (_loop)
-                return ((index % _pages.Count) + _pages.Count) % _pages.Count;
-            return Mathf.Clamp(index, 0, _pages.Count - 1);
         }
 
         #endregion
