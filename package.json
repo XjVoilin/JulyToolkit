@@ -1,6 +1,6 @@
 {
   "name": "com.july.toolkit",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "displayName": "JulyToolkit",
   "description": "可复用 UI/表现层工具组件，JulyCore + JulyArch 的扩展包",
   "unity": "2021.3",
