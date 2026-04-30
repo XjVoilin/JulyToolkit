@@ -23,13 +23,7 @@ namespace JulyToolkit
 
         private void OnEnable()
         {
-            GF.Event.Subscribe<LanguageChangedEvent>(OnLanguageChanged, this);
             Apply();
-        }
-
-        private void OnDisable()
-        {
-            GF.Event.UnsubscribeAll(this);
         }
 
         public void SetKey(string newKey)
@@ -53,11 +47,6 @@ namespace JulyToolkit
             _text.text = _args != null
                 ? GF.Localization.GetFormat(key, _args)
                 : GF.Localization.Get(key);
-        }
-
-        private void OnLanguageChanged(LanguageChangedEvent e)
-        {
-            Apply();
         }
     }
 }
