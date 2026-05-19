@@ -1,20 +1,19 @@
 {
-  "name": "JulyToolkit.Runtime",
-  "rootNamespace": "JulyToolkit",
-  "references": [
-    "JulyCore.Runtime",
-    "JulyArch.Runtime",
-    "Unity.TextMeshPro",
-    "DOTweenAot",
-    "UniTask"
-  ],
-  "includePlatforms": [],
-  "excludePlatforms": [],
-  "allowUnsafeCode": false,
-  "overrideReferences": false,
-  "precompiledReferences": [],
-  "autoReferenced": true,
-  "defineConstraints": [],
-  "versionDefines": [],
-  "noEngineReferences": false
+    "name": "JulyToolkit.Runtime",
+    "rootNamespace": "JulyToolkit",
+    "references": [
+        "JulyCore.Runtime",
+        "Unity.TextMeshPro",
+        "DOTweenAot",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
