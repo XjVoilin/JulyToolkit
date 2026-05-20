@@ -26,6 +26,7 @@ namespace JulyToolkit
 
         public void Bind(RewardActionState state, Action onAction, Action onClaim)
         {
+            Unbind();
             _onAction = onAction;
             _onClaim = onClaim;
             _actionBtn.onClick.AddListener(HandleAction);
