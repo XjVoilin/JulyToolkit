@@ -3,7 +3,8 @@
   "rootNamespace": "JulyToolkit.Editor",
   "references": [
     "JulyToolkit.Runtime",
-    "JulyCore.Runtime"
+    "JulyCore.Runtime",
+    "Unity.TextMeshPro"
   ],
   "includePlatforms": [
     "Editor"

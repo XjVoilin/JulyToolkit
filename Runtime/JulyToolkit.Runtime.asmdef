@@ -3,6 +3,7 @@
     "rootNamespace": "JulyToolkit",
     "references": [
         "JulyCore.Runtime",
+        "JulyEvents.Runtime",
         "Unity.TextMeshPro",
         "DOTweenAot",
         "UniTask"
