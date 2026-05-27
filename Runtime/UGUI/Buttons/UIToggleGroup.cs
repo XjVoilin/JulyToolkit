@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Events;
 
 namespace JulyToolkit
 {
@@ -8,7 +8,9 @@ namespace JulyToolkit
     {
         [SerializeField] private int m_SelectedIndex;
         [SerializeField] private List<UIToggleItem> m_Items = new();
-        [SerializeField] private UnityEvent<int> m_OnValueChanged = new();
+
+        public event Action<int> OnValueChanged;
+        public event Action<int> OnLockedItemClicked;
 
         public int SelectedIndex
         {
@@ -17,16 +19,28 @@ namespace JulyToolkit
             {
                 if (value < 0 || value >= m_Items.Count) return;
                 if (m_SelectedIndex == value) return;
+                if (m_Items[value] != null && m_Items[value].IsLocked) return;
                 ApplySelection(value);
-                m_OnValueChanged.Invoke(m_SelectedIndex);
+                OnValueChanged?.Invoke(m_SelectedIndex);
             }
         }
 
         public int Count => m_Items.Count;
 
-        public UnityEvent<int> OnValueChanged => m_OnValueChanged;
-
         public UIToggleItem GetItem(int index) => m_Items[index];
+
+        public bool IsItemLocked(int index)
+        {
+            if (index < 0 || index >= m_Items.Count) return false;
+            return m_Items[index] != null && m_Items[index].IsLocked;
+        }
+
+        public void SetItemLocked(int index, bool locked)
+        {
+            if (index < 0 || index >= m_Items.Count) return;
+            if (m_Items[index] != null)
+                m_Items[index].SetLocked(locked);
+        }
 
         public void SetWithoutNotify(int index)
         {
@@ -40,7 +54,14 @@ namespace JulyToolkit
             int index = m_Items.IndexOf(item);
             if (index < 0 || m_SelectedIndex == index) return;
             ApplySelection(index);
-            m_OnValueChanged.Invoke(m_SelectedIndex);
+            OnValueChanged?.Invoke(m_SelectedIndex);
+        }
+
+        internal void NotifyLockedItemClicked(UIToggleItem item)
+        {
+            int index = m_Items.IndexOf(item);
+            if (index < 0) return;
+            OnLockedItemClicked?.Invoke(index);
         }
 
         private void ApplySelection(int index)
