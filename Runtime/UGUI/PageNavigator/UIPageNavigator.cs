@@ -65,6 +65,21 @@ namespace JulyToolkit
 
         #region Public API
 
+        /// <summary>
+        /// 动态设置页面列表（替换 SerializeField 中的 _pages）。
+        /// 用于运行时从外部注入页面内容，例如帮助面板加载动态内容后调用。
+        /// </summary>
+        public void Initialize(List<RectTransform> pages)
+        {
+            _pages = pages;
+            foreach (var dot in _dots)
+                if (dot) Destroy(dot.gameObject);
+            _dots.Clear();
+            InitDots();
+            _currentPage = Mathf.Clamp(_startPage, 0, Mathf.Max(0, _pages.Count - 1));
+            ShowPageImmediate(_currentPage);
+        }
+
         public void GoToPage(int index)
         {
             if (_isTransitioning || _pages.Count <= 1) return;
