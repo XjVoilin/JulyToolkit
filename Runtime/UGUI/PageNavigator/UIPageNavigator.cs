@@ -51,9 +51,10 @@ namespace JulyToolkit
 
         private void Awake()
         {
-            InitDots();
             BindButtons();
-            _currentPage = Mathf.Clamp(_startPage, 0, Mathf.Max(0, _pages.Count - 1));
+            if (_pages.Count == 0) return;
+            InitDots();
+            _currentPage = Mathf.Clamp(_startPage, 0, _pages.Count - 1);
             ShowPageImmediate(_currentPage);
         }
 
@@ -97,6 +98,13 @@ namespace JulyToolkit
 
         public void NextPage() => Step(PageDirection.Forward);
         public void PrevPage() => Step(PageDirection.Backward);
+
+        public void Stop()
+        {
+            _activeTween?.Kill();
+            _activeTween = null;
+            _isTransitioning = false;
+        }
 
         private void Step(PageDirection direction)
         {
