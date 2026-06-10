@@ -399,26 +399,8 @@ namespace GooseMarket.Editor
 
             if (nodeData.children != null)
             {
-                TextAreaResult textArea = default;
-                if (nodeData.type == "button" && !string.IsNullOrEmpty(nodeData.spritePath))
-                {
-                    textArea = DetectButtonTextAreaFromSprite(nodeData.spritePath, nodeData.width, nodeData.height);
-                }
-
                 foreach (var child in nodeData.children)
-                {
                     CreateNode(child, go.transform);
-
-                    if (textArea.success && child.type == "text")
-                    {
-                        var childRect = go.transform.Find(child.name)?.GetComponent<RectTransform>();
-                        if (childRect != null)
-                        {
-                            childRect.anchoredPosition = TruncateToTwoDecimals(new Vector2(textArea.offsetX, textArea.offsetY));
-                            childRect.sizeDelta = TruncateToTwoDecimals(new Vector2(textArea.width, textArea.height));
-                        }
-                    }
-                }
             }
         }
 
@@ -846,12 +828,6 @@ namespace GooseMarket.Editor
             public int left, right, top, bottom;
         }
 
-        private struct TextAreaResult
-        {
-            public bool success;
-            public float offsetX, offsetY, width, height;
-        }
-
         private static SliceBorderResult DetectSliceBorder(Texture2D texture)
         {
             var result = new SliceBorderResult();
@@ -914,180 +890,6 @@ namespace GooseMarket.Editor
             return startBorder > 0 && startBorder < size / 2 && endBorder > 0 && endBorder < size / 2;
         }
 
-        private static TextAreaResult DetectButtonTextArea(Texture2D texture)
-        {
-            var result = new TextAreaResult();
-
-            int w = texture.width;
-            int h = texture.height;
-            if (w <= 1 || h <= 1)
-                return result;
-
-            var pixels = texture.GetPixels32();
-
-            int centerCol = w / 2;
-            int centerRow = h / 2;
-            Color32 centerPixel = pixels[centerRow * w + centerCol];
-
-            int leftBound = 0;
-            for (int col = centerCol - 1; col >= 0; col--)
-            {
-                if (!PixelEquals(pixels[centerRow * w + col], centerPixel))
-                {
-                    leftBound = col + 1;
-                    break;
-                }
-            }
-
-            int rightBound = w - 1;
-            for (int col = centerCol + 1; col < w; col++)
-            {
-                if (!PixelEquals(pixels[centerRow * w + col], centerPixel))
-                {
-                    rightBound = col - 1;
-                    break;
-                }
-            }
-
-            int bottomBound = 0;
-            for (int row = centerRow - 1; row >= 0; row--)
-            {
-                if (!PixelEquals(pixels[row * w + centerCol], centerPixel))
-                {
-                    bottomBound = row + 1;
-                    break;
-                }
-            }
-
-            int topBound = h - 1;
-            for (int row = centerRow + 1; row < h; row++)
-            {
-                if (!PixelEquals(pixels[row * w + centerCol], centerPixel))
-                {
-                    topBound = row - 1;
-                    break;
-                }
-            }
-
-            float textAreaWidth = rightBound - leftBound + 1;
-            float textAreaHeight = topBound - bottomBound + 1;
-            float textAreaCenterX = (leftBound + rightBound) / 2f - (w - 1) / 2f;
-            float textAreaCenterY = (bottomBound + topBound) / 2f - (h - 1) / 2f;
-
-            if (textAreaWidth > 2 && textAreaHeight > 2 &&
-                (textAreaWidth < w || textAreaHeight < h))
-            {
-                result.success = true;
-                result.offsetX = textAreaCenterX;
-                result.offsetY = textAreaCenterY;
-                result.width = textAreaWidth;
-                result.height = textAreaHeight;
-            }
-
-            return result;
-        }
-
-        private static TextAreaResult RemapTextAreaToButtonSize(
-            TextAreaResult pixelResult, int spriteW, int spriteH,
-            float buttonW, float buttonH, Vector4 border)
-        {
-            if (!pixelResult.success)
-                return pixelResult;
-
-            float halfSpriteW = (spriteW - 1) / 2f;
-            float halfSpriteH = (spriteH - 1) / 2f;
-            float pxLeft = halfSpriteW + pixelResult.offsetX - pixelResult.width / 2f;
-            float pxRight = halfSpriteW + pixelResult.offsetX + pixelResult.width / 2f;
-            float pxBottom = halfSpriteH + pixelResult.offsetY - pixelResult.height / 2f;
-            float pxTop = halfSpriteH + pixelResult.offsetY + pixelResult.height / 2f;
-
-            float uiLeft = RemapAxis(pxLeft, spriteW, buttonW, border.x, border.z);
-            float uiRight = RemapAxis(pxRight, spriteW, buttonW, border.x, border.z);
-            float uiBottom = RemapAxis(pxBottom, spriteH, buttonH, border.y, border.w);
-            float uiTop = RemapAxis(pxTop, spriteH, buttonH, border.y, border.w);
-
-            float newWidth = uiRight - uiLeft;
-            float newHeight = uiTop - uiBottom;
-            float newOffsetX = (uiLeft + uiRight) / 2f - buttonW / 2f;
-            float newOffsetY = (uiBottom + uiTop) / 2f - buttonH / 2f;
-
-            if (newWidth <= 2 || newHeight <= 2)
-                return new TextAreaResult { success = false };
-
-            return new TextAreaResult
-            {
-                success = true,
-                offsetX = newOffsetX,
-                offsetY = newOffsetY,
-                width = newWidth,
-                height = newHeight
-            };
-        }
-
-        private static float RemapAxis(float px, int spriteSize, float buttonSize, float borderStart, float borderEnd)
-        {
-            if (borderStart + borderEnd <= 0 || borderStart + borderEnd >= spriteSize)
-                return px * buttonSize / spriteSize;
-
-            float spriteCenter = spriteSize - borderStart - borderEnd;
-            float buttonCenter = buttonSize - borderStart - borderEnd;
-
-            if (buttonCenter <= 0)
-                return px * buttonSize / spriteSize;
-
-            if (px < borderStart)
-                return px;
-            else if (px > spriteSize - borderEnd)
-                return buttonSize - (spriteSize - px);
-            else
-            {
-                if (spriteCenter <= 0) return px;
-                return borderStart + (px - borderStart) * buttonCenter / spriteCenter;
-            }
-        }
-
-        private static TextAreaResult DetectButtonTextAreaFromSprite(string spritePath, float buttonW, float buttonH)
-        {
-            var fullPath = ResolveSpriteFullPath(spritePath);
-            var importer = AssetImporter.GetAtPath(fullPath) as TextureImporter;
-            if (importer == null)
-                return default;
-
-            bool wasReadable = importer.isReadable;
-            if (!wasReadable)
-            {
-                importer.isReadable = true;
-                importer.SaveAndReimport();
-            }
-
-            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(fullPath);
-            if (texture == null)
-            {
-                if (!wasReadable)
-                {
-                    importer.isReadable = false;
-                    importer.SaveAndReimport();
-                }
-                return default;
-            }
-
-            var result = DetectButtonTextArea(texture);
-
-            if (result.success)
-            {
-                Vector4 border = importer.spriteBorder;
-                result = RemapTextAreaToButtonSize(result, texture.width, texture.height, buttonW, buttonH, border);
-            }
-
-            if (!wasReadable)
-            {
-                importer.isReadable = false;
-                importer.SaveAndReimport();
-            }
-
-            return result;
-        }
-
         private static bool ColumnEquals(Color32[] pixels, int colA, int colB, int w, int h)
         {
             for (int row = 0; row < h; row++)
@@ -1128,10 +930,6 @@ namespace GooseMarket.Editor
             return Math.Abs(a - b) <= SlicePixelTolerance;
         }
 
-        private static bool PixelEquals(Color32 a, Color32 b)
-        {
-            return a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a;
-        }
 
         private static void ApplySlicedType(Image image, string spritePath)
         {

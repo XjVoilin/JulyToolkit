@@ -563,15 +563,6 @@ namespace GooseMarket.Editor
 
         private static void GetRelativePosition(LayerInfo layer, out float relX, out float relY, out float w, out float h)
         {
-            if (layer.Prefix == "text" && layer.Parent != null && layer.Parent.Prefix == "btn")
-            {
-                relX = 0;
-                relY = 0;
-                w = GetBaseWidth(layer.Parent);
-                h = GetBaseHeight(layer.Parent);
-                return;
-            }
-
             float parentAbsX = layer.Parent != null ? layer.Parent.AbsUnityX : 0;
             float parentAbsY = layer.Parent != null ? layer.Parent.AbsUnityY : 0;
             float parentScale = GetLayerScale(layer.Parent);
@@ -753,13 +744,7 @@ namespace GooseMarket.Editor
 
         private static string MapTextAlignment(string psAlignment)
         {
-            switch (psAlignment)
-            {
-                case "left": return "left-middle";
-                case "center": return "center-middle";
-                case "right": return "right-middle";
-                default: return "center-middle";
-            }
+            return "center-middle";
         }
 
         #endregion
