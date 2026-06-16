@@ -129,7 +129,6 @@ namespace JulyToolkit
         protected virtual void OnCloseClicked()
         {
             onClose?.Invoke();
-            gameObject.SetActive(false);
         }
 
         /// <summary>
