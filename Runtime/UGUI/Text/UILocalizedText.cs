@@ -1,4 +1,5 @@
-using JulyCore;
+using JulyArch;
+using JulyGame;
 using TMPro;
 using UnityEngine;
 
@@ -9,7 +10,7 @@ namespace JulyToolkit
     /// 支持格式化参数，语言切换时自动刷新。
     /// </summary>
     [RequireComponent(typeof(TextMeshProUGUI))]
-    public class UILocalizedText : MonoBehaviour
+    public class UILocalizedText : ArchBehaviour
     {
         [SerializeField] private string key;
 
@@ -44,9 +45,12 @@ namespace JulyToolkit
         {
             if (_text == null || string.IsNullOrEmpty(key)) return;
 
+            var loc = this.GetSystem<ILocalizationSystem>();
+            if (loc == null) return;
+
             _text.text = _args != null
-                ? GF.Localization.GetFormat(key, _args)
-                : GF.Localization.Get(key);
+                ? loc.GetFormat(key, _args)
+                : loc.Get(key);
         }
     }
 }

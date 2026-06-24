@@ -1,62 +1,57 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using JulyCore;
-using JulyCore.Data.UI;
+using JulyArch;
+using JulyGame;
 
 namespace JulyToolkit
 {
     /// <summary>
     /// 场景切换协调器。
-    /// 
+    ///
     /// 用法：
-    ///   await SceneTransitionHandler.EnterAsync(ct);
+    ///   await SceneTransitionHandler.EnterAsync();
     ///   // … 下载资源、切场景、初始化 …
-    ///   await SceneTransitionHandler.ExitAsync(ct);
+    ///   await SceneTransitionHandler.ExitAsync();
     /// </summary>
     public static class SceneTransitionHandler
     {
-        private static UIOpenOptions _loadingOptions;
+        private static int _loadingWindowId;
         private static ISceneTransitionView _activeView;
+        private static bool _initialized;
 
-        /// <summary>
-        /// 初始化过渡窗口配置（热更阶段调用，传入项目侧的窗口 ID 和名称）。
-        /// </summary>
         public static void Initialize(int loadingWindowId, string loadingWindowName)
         {
-            var configOptions = GF.UI.GetWindowConfig(loadingWindowId);
-
-            _loadingOptions = new UIOpenOptions
-            {
-                WindowIdentifier = new WindowIdentifier(loadingWindowId, loadingWindowName),
-                Layer = UILayer.Loading,
-                AddToStack = false,
-                IgnoreSafeArea = configOptions?.IgnoreSafeArea ?? false
-            };
+            _loadingWindowId = loadingWindowId;
+            _initialized = true;
         }
 
-        /// <summary>
-        /// 入场：打开过渡窗口 → 播放入场动画 → 清理业务 UI / 音效
-        /// </summary>
         public static async UniTask EnterAsync(object options = null, CancellationToken ct = default)
         {
             _activeView = null;
 
-            if (_loadingOptions != null)
-                _activeView = await GF.UI.OpenAsync(_loadingOptions, ct) as ISceneTransitionView;
+            var ctx = ArchContext.Current;
+            var ui = ctx?.GetSystem<UISystem>();
+
+            if (_initialized && ui != null)
+            {
+                var view = await ui.OpenAsync(_loadingWindowId, ct: ct);
+                _activeView = view as ISceneTransitionView;
+            }
 
             if (_activeView != null)
                 await _activeView.PlayEnterAsync(options);
 
-            GF.UI.CloseLayer(UILayer.Background);
-            GF.UI.CloseLayer(UILayer.Normal);
-            GF.UI.CloseLayer(UILayer.Popup);
-            GF.UI.CloseLayer(UILayer.Top);
-            GF.Audio.StopAllSfx();
+            if (ui != null)
+            {
+                ui.CloseLayer(UILayer.Background, destroy: true, excludeWindowId: _loadingWindowId);
+                ui.CloseLayer(UILayer.Normal, destroy: true, excludeWindowId: _loadingWindowId);
+                ui.CloseLayer(UILayer.Popup, destroy: true, excludeWindowId: _loadingWindowId);
+                ui.CloseLayer(UILayer.Top, destroy: true, excludeWindowId: _loadingWindowId);
+            }
+
+            ctx?.GetSystem<AudioSystem>()?.StopAllSfx();
         }
 
-        /// <summary>
-        /// 退场：播放退场动画 → 关闭过渡窗口
-        /// </summary>
         public static async UniTask ExitAsync(CancellationToken ct = default)
         {
             if (_activeView != null)
@@ -65,8 +60,8 @@ namespace JulyToolkit
                 _activeView = null;
             }
 
-            if (_loadingOptions != null)
-                await GF.UI.CloseAsync(_loadingOptions.WindowIdentifier.ID, cancellationToken: ct);
+            if (_initialized)
+                await (ArchContext.Current?.GetSystem<UISystem>()?.CloseAsync(_loadingWindowId, ct: ct) ?? UniTask.CompletedTask);
         }
     }
 }

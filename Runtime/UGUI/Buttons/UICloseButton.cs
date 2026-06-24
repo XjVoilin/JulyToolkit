@@ -1,25 +1,25 @@
-using JulyCore;
-using JulyCore.Provider.UI;
+using JulyArch;
+using JulyGame;
 using UnityEngine;
 
 namespace JulyToolkit
 {
     /// <summary>
-    /// 挂载到 CloseBtn 上，自动查找父级 UIBase 并在点击时关闭窗口。
+    /// 挂载到 CloseBtn 上，自动查找父级 UIView 并在点击时关闭窗口。
     /// 无需每个窗口重复编写关闭逻辑。
     /// </summary>
     [RequireComponent(typeof(UISmartButton))]
-    public class UICloseButton : MonoBehaviour
+    public class UICloseButton : ArchBehaviour
     {
-        private UIBase _window;
+        private UIView _window;
         private UISmartButton _button;
 
         private void Awake()
         {
             _button = GetComponent<UISmartButton>();
-            _window = GetComponentInParent<UIBase>();
+            _window = GetComponentInParent<UIView>();
             if (_window == null)
-                GF.LogWarning($"[UICloseButton] 未找到父级 UIBase: {gameObject.name}");
+                Debug.LogWarning($"[UICloseButton] 未找到父级 UIView: {gameObject.name}");
             _button.onClick.AddListener(OnClick);
         }
 
@@ -31,7 +31,7 @@ namespace JulyToolkit
         private void OnClick()
         {
             if (_window != null && _window.IsOpened)
-                GF.UI.Close(_window, true);
+                this.GetSystem<UISystem>()?.Close(_window, true);
         }
     }
 }

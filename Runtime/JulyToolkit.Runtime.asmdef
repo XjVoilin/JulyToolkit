@@ -2,7 +2,9 @@
     "name": "JulyToolkit.Runtime",
     "rootNamespace": "JulyToolkit",
     "references": [
-        "JulyCore.Runtime",
+        "JulyGame.Runtime",
+        "JulyArch.Runtime",
+        "JulyCommon.Runtime",
         "JulyEvents.Runtime",
         "Unity.TextMeshPro",
         "DOTweenAot",

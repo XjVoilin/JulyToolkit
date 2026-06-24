@@ -1,12 +1,14 @@
-using Cysharp.Threading.Tasks;
 using DG.Tweening;
-using JulyCore;
+using JulyArch;
+using JulyGame;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 
+namespace JulyToolkit
+{
 [DisallowMultipleComponent]
-public class UISmartButton : MonoBehaviour,
+public class UISmartButton : ArchBehaviour,
     IPointerClickHandler,
     IPointerDownHandler,
     IPointerUpHandler,
@@ -24,7 +26,7 @@ public class UISmartButton : MonoBehaviour,
 
     [Header("Audio")]
     public bool enableSound = true;
-    [Tooltip("点击音效名（留空使用 FrameworkConfig 默认值）")]
+    [Tooltip("点击音效名（留空使用 AudioSystem 配置的默认值）")]
     [SerializeField] private string clickSfx;
 
     [Header("Event")] public UnityEvent onClick = new();
@@ -151,10 +153,9 @@ public class UISmartButton : MonoBehaviour,
     private void PlayClickSound()
     {
         if (!enableSound) return;
-        var sfx = !string.IsNullOrEmpty(clickSfx) ? clickSfx : GF.Audio.DefaultClickSfx;
-        if (!string.IsNullOrEmpty(sfx))
-            GF.Audio.PlaySfx(sfx);
+        this.GetSystem<IAudioSystem>()?.PlayClickSfx(clickSfx);
     }
 
     #endregion
+}
 }

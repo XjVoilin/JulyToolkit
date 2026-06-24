@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace JulyGF.Editor.Menu
+namespace JulyToolkit.Editor
 {
     public static class CreateObjectMenu_UISmartButton
     {
