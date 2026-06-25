@@ -1,10 +1,13 @@
 {
   "name": "com.july.toolkit",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "displayName": "JulyToolkit",
-  "description": "可复用 UI/表现层工具组件，JulyCore + JulyArch 的扩展包",
+  "description": "可复用 UI/表现层工具组件，JulyCore + JulyArch + JulyGame 的扩展包",
   "unity": "2021.3",
   "dependencies": {
+    "com.july.common": "1.0.0",
+    "com.july.arch": "1.0.24",
+    "com.july.game": "1.0.7",
     "com.july.events": "1.0.0"
   },
   "keywords": [
