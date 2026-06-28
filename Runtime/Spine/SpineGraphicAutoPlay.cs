@@ -16,7 +16,9 @@ namespace JulyToolkit.Spine
 
         protected override AnimationState GetAnimationState()
         {
-            return _skeletonGraphic != null ? _skeletonGraphic.AnimationState : null;
+            if (_skeletonGraphic == null) return null;
+            var animStateComponent = _skeletonGraphic.GetComponent<IAnimationStateComponent>();
+            return animStateComponent != null ? animStateComponent.AnimationState : null;
         }
     }
 }
