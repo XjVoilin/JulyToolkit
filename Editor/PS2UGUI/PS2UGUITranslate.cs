@@ -356,32 +356,32 @@ namespace GooseMarket.Editor
                 switch (layer.Prefix)
                 {
                     case "btn":
-                        baseName = "Btn" + ToPascalCase(layer.ResourceName);
+                        baseName = ToPascalCase(layer.ResourceName) + "Btn";
                         break;
                     case "bg":
-                        baseName = "Bg" + ToPascalCase(layer.ResourceName);
+                        baseName = ToPascalCase(layer.ResourceName) + "Bg";
                         break;
                     case "mask":
-                        var maskSuffix = ToPascalCase(layer.ResourceName);
-                        baseName = string.IsNullOrEmpty(maskSuffix) ? "Mask" : "Mask" + maskSuffix;
+                        var maskBody = ToPascalCase(layer.ResourceName);
+                        baseName = string.IsNullOrEmpty(maskBody) ? "Mask" : maskBody + "Mask";
                         break;
                     case "tile":
-                        baseName = "Tile" + ToPascalCase(layer.ResourceName);
+                        baseName = ToPascalCase(layer.ResourceName) + "Tile";
                         break;
                     case "img":
-                        baseName = "Img" + ToPascalCase(layer.ResourceName);
+                        baseName = ToPascalCase(layer.ResourceName) + "Img";
                         break;
                     case "icon":
-                        baseName = "Icon" + ToPascalCase(layer.ResourceName);
+                        baseName = ToPascalCase(layer.ResourceName) + "Icon";
                         break;
                     case "slider":
-                        baseName = "Slider" + ToPascalCase(layer.ResourceName);
+                        baseName = ToPascalCase(layer.ResourceName) + "Slider";
                         break;
                     case "prefab":
                         baseName = layer.ResourceName;
                         break;
                     default:
-                        baseName = "Node" + ToPascalCase(layer.ResourceName);
+                        baseName = ToPascalCase(layer.ResourceName) + "Node";
                         break;
                 }
 
@@ -403,7 +403,7 @@ namespace GooseMarket.Editor
 
                 string baseName;
                 if (layer.Parent != null && layer.Parent.Prefix == "btn")
-                    baseName = "Tx" + layer.Parent.UnityName;
+                    baseName = layer.Parent.UnityName + "Tx";
                 else
                     baseName = "Tx";
 

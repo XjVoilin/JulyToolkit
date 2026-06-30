@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using JulyToolkit;
 using TMPro;
 using UnityEditor;
-using UnityEditor.Callbacks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -21,8 +19,6 @@ namespace GooseMarket.Editor
         // UITemplate.prefab 已不再需要，prefab 结构由代码直接创建
         private const string FontMaterialPath = "Assets/Game/Art/Fonts/";
         private const string DefaultFontAssetPath = "Assets/Game/Art/Fonts/Font_Main.asset";
-        private const string GlobalSpriteRoot = "Assets/Game/Art/Textures/";
-        private const string UIPrefabRoot = "Assets/Game/Art/Prefabs/UI/";
         private const int SlicePixelTolerance = 5;
         private const int SliceMinimumCenterPixelsPerSide = 2;
         private const float ScaleCompensationEpsilon = 0.0001f;
@@ -51,9 +47,8 @@ namespace GooseMarket.Editor
         /// 程序化入口：从 JSON 文件生成 Prefab。
         /// 供 AI 自动化流程或外部脚本调用。
         /// </summary>
-        /// <param name="jsonAssetPath">JSON 文件的 Asset 路径，如 "Assets/Game/MiniGames/Game101/Art/Textures/UIGame101HUD_figma_data.json"</param>
-        /// <param name="isWindow">true = 框架 UIWindow（带 CanvasGroup），false = 普通 Prefab</param>
-        public static void GenerateFromJson(string jsonAssetPath, bool isWindow)
+        /// <param name="jsonAssetPath">JSON 文件的 Asset 路径</param>
+        public static void GenerateFromJson(string jsonAssetPath)
         {
             if (!IsSupportedPrefabJsonPath(jsonAssetPath))
             {
@@ -70,7 +65,7 @@ namespace GooseMarket.Editor
             }
 
             var uiName = GetPrefabNameFromJsonPath(jsonAssetPath);
-            GeneratePrefab(data, jsonAssetPath, uiName, isWindow);
+            GeneratePrefab(data, jsonAssetPath, uiName);
         }
 
         #endregion
@@ -78,25 +73,13 @@ namespace GooseMarket.Editor
         #region 菜单入口
 
         [MenuItem("Assets/PS2UGUI/生成 Prefab", false, 0)]
-        private static void GenerateNormalPrefabMenuItem()
+        private static void GeneratePrefabMenuItem()
         {
-            ExecuteGeneration(isWindow: false);
-        }
-
-        [MenuItem("Assets/PS2UGUI/生成 UIWindow", false, 1)]
-        private static void GenerateWindowPrefabMenuItem()
-        {
-            ExecuteGeneration(isWindow: true);
+            ExecuteGeneration();
         }
 
         [MenuItem("Assets/PS2UGUI/生成 Prefab", true)]
-        private static bool GenerateNormalPrefabValidation()
-        {
-            return ValidateSelection();
-        }
-
-        [MenuItem("Assets/PS2UGUI/生成 UIWindow", true)]
-        private static bool GenerateWindowPrefabValidation()
+        private static bool GeneratePrefabValidation()
         {
             return ValidateSelection();
         }
@@ -109,7 +92,7 @@ namespace GooseMarket.Editor
             return IsSupportedPrefabJsonPath(path);
         }
 
-        private static void ExecuteGeneration(bool isWindow)
+        private static void ExecuteGeneration()
         {
             var selected = Selection.activeObject;
             var path = AssetDatabase.GetAssetPath(selected);
@@ -123,7 +106,7 @@ namespace GooseMarket.Editor
             }
 
             var uiName = GetPrefabNameFromJsonPath(path);
-            GeneratePrefab(data, path, uiName, isWindow);
+            GeneratePrefab(data, path, uiName);
         }
 
         internal static bool IsSupportedPrefabJsonPath(string path)
@@ -162,11 +145,13 @@ namespace GooseMarket.Editor
 
         #region Prefab 生成
 
-        /// <param name="isWindow">true = 框架 UIWindow（带 CanvasGroup），false = 普通 Prefab</param>
-        internal static void GeneratePrefab(UnityData data, string jsonPath, string uiName, bool isWindow)
+        /// <summary>
+        /// 生成 Prefab 到磁盘。
+        /// </summary>
+        internal static void GeneratePrefab(UnityData data, string jsonPath, string uiName)
         {
             var dir = Path.GetDirectoryName(jsonPath)?.Replace("\\", "/");
-            _currentJsonDirectory = string.IsNullOrEmpty(dir) ? GlobalSpriteRoot : dir + "/";
+            _currentJsonDirectory = string.IsNullOrEmpty(dir) ? "Assets/" : dir + "/";
 
             var prefabPath = ResolvePrefabOutputPath(jsonPath, uiName);
             if (string.IsNullOrEmpty(prefabPath))
@@ -195,7 +180,7 @@ namespace GooseMarket.Editor
             }
 
             // 创建 prefab 根节点
-            var prefabRoot = CreatePrefabRoot(uiName, isWindow);
+            var prefabRoot = CreatePrefabRoot(uiName);
 
             if (data.children != null)
             {
@@ -213,20 +198,11 @@ namespace GooseMarket.Editor
             EditorGUIUtility.PingObject(newPrefab);
             AssetDatabase.OpenAsset(newPrefab);
 
-            var typeLabel = isWindow ? "UIWindow" : "Prefab";
-            Debug.Log($"PS2UGUI: 已生成 {typeLabel} → {prefabPath}");
+            Debug.Log($"PS2UGUI: 已生成 Prefab → {prefabPath}");
             _currentJsonDirectory = null;
-
-            if (isWindow)
-                GenerateWindowScript(uiName, prefabPath);
         }
 
-        /// <summary>
-        /// 创建 Prefab 根 GameObject。
-        /// 普通 Prefab：仅 RectTransform
-        /// UIWindow：RectTransform + CanvasGroup
-        /// </summary>
-        private static GameObject CreatePrefabRoot(string name, bool isWindow)
+        private static GameObject CreatePrefabRoot(string name)
         {
             var root = new GameObject(name, typeof(RectTransform));
             root.layer = LayerMask.NameToLayer("UI");
@@ -237,14 +213,6 @@ namespace GooseMarket.Editor
             rootRect.offsetMin = Vector2.zero;
             rootRect.offsetMax = Vector2.zero;
 
-            if (isWindow)
-            {
-                var cg = root.AddComponent<CanvasGroup>();
-                cg.alpha = 1f;
-                cg.interactable = true;
-                cg.blocksRaycasts = true;
-            }
-
             return root;
         }
 
@@ -252,39 +220,24 @@ namespace GooseMarket.Editor
 
         #region 路径解析
 
-        private const string MiniGamesSegment = "MiniGames/";
-        private const string ArtTexturesSegment = "/Art/Textures";
-
         /// <summary>
         /// 从 JSON 路径解析 prefab 输出路径。
-        /// 规则：
-        ///   小游戏 JSON 在 MiniGames/GameXXX/Art/Textures/ → 输出到 MiniGames/GameXXX/Res/Prefabs/UI/{name}.prefab
-        ///   盒子 JSON 在 Assets/Game/Art/Textures/ → 输出到 Assets/Game/Res/Prefabs/UI/{name}/{name}.prefab
+        /// 从 JSON 所在目录向上逐级查找包含 Res/ 子目录的那一层，
+        /// 输出到 {找到的层}/Res/Prefabs/UI/{name}/{name}.prefab
         /// </summary>
         private static string ResolvePrefabOutputPath(string jsonPath, string prefabName)
         {
             var normalized = jsonPath.Replace("\\", "/");
+            var dir = Path.GetDirectoryName(normalized)?.Replace("\\", "/");
 
-            // 尝试从路径中提取 game root（MiniGames/GameXXX/ 或 Assets/Game/）
-            var miniGamesIdx = normalized.IndexOf(MiniGamesSegment, StringComparison.OrdinalIgnoreCase);
-            if (miniGamesIdx >= 0)
+            while (!string.IsNullOrEmpty(dir) && dir.Contains("/"))
             {
-                // 小游戏路径：找到 MiniGames/GameXXX/ 层级
-                var afterMiniGames = normalized.Substring(miniGamesIdx + MiniGamesSegment.Length);
-                var slashIdx = afterMiniGames.IndexOf('/');
-                if (slashIdx > 0)
-                {
-                    var gameRoot = normalized.Substring(0, miniGamesIdx + MiniGamesSegment.Length + slashIdx);
-                    return $"{gameRoot}/Res/Prefabs/UI/{prefabName}.prefab";
-                }
-            }
+                var resCandidate = dir + "/Res";
+                if (AssetDatabase.IsValidFolder(resCandidate))
+                    return $"{dir}/Res/Prefabs/UI/{prefabName}/{prefabName}.prefab";
 
-            // 盒子路径：从 Art/Textures 向上找到 Assets/Game
-            var artIdx = normalized.IndexOf(ArtTexturesSegment, StringComparison.OrdinalIgnoreCase);
-            if (artIdx >= 0)
-            {
-                var gameRoot = normalized.Substring(0, artIdx);
-                return $"{gameRoot}/Res/Prefabs/UI/{prefabName}/{prefabName}.prefab";
+                var lastSlash = dir.LastIndexOf('/');
+                dir = lastSlash >= 0 ? dir.Substring(0, lastSlash) : "";
             }
 
             return null;
@@ -299,7 +252,7 @@ namespace GooseMarket.Editor
         {
             if (string.IsNullOrEmpty(spriteName)) return null;
 
-            var jsonDir = _currentJsonDirectory ?? GlobalSpriteRoot;
+            var jsonDir = _currentJsonDirectory ?? "Assets/";
 
             if (!spriteName.Contains("/"))
             {
@@ -438,7 +391,13 @@ namespace GooseMarket.Editor
             if (string.IsNullOrEmpty(nodeData.prefabPath))
                 return new GameObject(nodeData.name);
 
-            var fullPath = UIPrefabRoot + nodeData.prefabPath + ".prefab";
+            var fullPath = ResolveReferencedPrefabPath(nodeData.prefabPath);
+            if (string.IsNullOrEmpty(fullPath))
+            {
+                Debug.LogWarning($"PS2UGUI: 外部 Prefab 路径解析失败 → {nodeData.prefabPath}");
+                return new GameObject(nodeData.name);
+            }
+
             var prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(fullPath);
             if (prefabAsset == null)
             {
@@ -455,6 +414,26 @@ namespace GooseMarket.Editor
 
             prefabInstance.name = nodeData.name;
             return prefabInstance;
+        }
+
+        /// <summary>
+        /// 从 _currentJsonDirectory 向上查找 Res/ 目录，拼接 Res/Prefabs/UI/{prefabPath}.prefab
+        /// </summary>
+        private static string ResolveReferencedPrefabPath(string prefabPath)
+        {
+            var dir = (_currentJsonDirectory ?? "Assets/").TrimEnd('/');
+
+            while (!string.IsNullOrEmpty(dir) && dir.Contains("/"))
+            {
+                var resCandidate = dir + "/Res";
+                if (AssetDatabase.IsValidFolder(resCandidate))
+                    return $"{dir}/Res/Prefabs/UI/{prefabPath}.prefab";
+
+                var lastSlash = dir.LastIndexOf('/');
+                dir = lastSlash >= 0 ? dir.Substring(0, lastSlash) : "";
+            }
+
+            return null;
         }
 
         private static GameObject CreateButtonNode(UnityNode nodeData)
@@ -996,102 +975,6 @@ namespace GooseMarket.Editor
 
                 Debug.LogWarning($"PS2UGUI: 九宫格 border 检测失败 → {fullPath}");
             }
-        }
-
-        #endregion
-
-        #region UIWindow 脚本生成
-
-        private const string WindowScriptBasePath = "Assets/Game/Scripts/Views/Windows";
-        private const string PrefsKeyPendingClassName = "PS2UGUI.PendingWindowClassName";
-        private const string PrefsKeyPendingPrefabPath = "PS2UGUI.PendingWindowPrefabPath";
-
-        private static void GenerateWindowScript(string className, string prefabPath)
-        {
-            var scriptFolder = $"{WindowScriptBasePath}/{className}";
-            var scriptPath = $"{scriptFolder}/{className}.cs";
-
-            if (File.Exists(scriptPath.Replace("Assets/", Application.dataPath + "/")))
-            {
-                Debug.Log($"PS2UGUI: 脚本已存在，跳过生成 → {scriptPath}");
-                AttachScriptToPrefab(prefabPath, className);
-                return;
-            }
-
-            var fullFolder = scriptFolder.Replace("Assets/", Application.dataPath + "/");
-            if (!Directory.Exists(fullFolder))
-                Directory.CreateDirectory(fullFolder);
-
-            var code = $@"using JulyArch;
-
-namespace GooseMarket
-{{
-    public class {className} : GameUIView
-    {{
-        protected override void OnBeforeOpen()
-        {{
-            base.OnBeforeOpen();
-        }}
-
-        protected override void OnClose()
-        {{
-            base.OnClose();
-        }}
-    }}
-}}
-";
-            File.WriteAllText(scriptPath.Replace("Assets/", Application.dataPath + "/"), code);
-            Debug.Log($"PS2UGUI: 已生成 View 脚本 → {scriptPath}");
-
-            EditorPrefs.SetString(PrefsKeyPendingClassName, className);
-            EditorPrefs.SetString(PrefsKeyPendingPrefabPath, prefabPath);
-
-            AssetDatabase.ImportAsset(scriptPath);
-            AssetDatabase.Refresh();
-        }
-
-        [DidReloadScripts]
-        private static void OnScriptsReloaded()
-        {
-            var className = EditorPrefs.GetString(PrefsKeyPendingClassName, "");
-            var prefabPath = EditorPrefs.GetString(PrefsKeyPendingPrefabPath, "");
-
-            if (string.IsNullOrEmpty(className) || string.IsNullOrEmpty(prefabPath))
-                return;
-
-            EditorPrefs.DeleteKey(PrefsKeyPendingClassName);
-            EditorPrefs.DeleteKey(PrefsKeyPendingPrefabPath);
-
-            EditorApplication.delayCall += () => AttachScriptToPrefab(prefabPath, className);
-        }
-
-        private static void AttachScriptToPrefab(string prefabPath, string className)
-        {
-            var scriptType = AppDomain.CurrentDomain.GetAssemblies()
-                .Select(a => a.GetType(className) ?? a.GetType($"GooseMarket.{className}"))
-                .FirstOrDefault(t => t != null);
-
-            if (scriptType == null)
-            {
-                Debug.LogWarning($"PS2UGUI: 未找到脚本类型 {className}，请手动挂载");
-                return;
-            }
-
-            var root = PrefabUtility.LoadPrefabContents(prefabPath);
-            if (root == null)
-            {
-                Debug.LogWarning($"PS2UGUI: 无法加载 Prefab → {prefabPath}");
-                return;
-            }
-
-            if (root.GetComponent(scriptType) == null)
-            {
-                root.AddComponent(scriptType);
-                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
-                Debug.Log($"PS2UGUI: 已挂载 {className} → {prefabPath}");
-            }
-
-            PrefabUtility.UnloadPrefabContents(root);
         }
 
         #endregion

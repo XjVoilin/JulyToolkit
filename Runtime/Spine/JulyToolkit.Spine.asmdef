@@ -4,7 +4,9 @@
   "references": [
     "JulyToolkit.Runtime",
     "spine-csharp",
-    "spine-unity"
+    "spine-unity",
+    "UnityEditor.UI",
+    "UnityEngine.UI"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

@@ -8,7 +8,9 @@
         "JulyEvents.Runtime",
         "Unity.TextMeshPro",
         "DOTweenAot",
-        "UniTask"
+        "UniTask",
+        "UnityEditor.UI",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
