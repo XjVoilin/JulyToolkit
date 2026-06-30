@@ -180,7 +180,7 @@ namespace GooseMarket.Editor
 
             // 生成 Prefab
             var unityJsonPath = $"{targetPanelDir}/{jsonFileName}";
-            PS2UGUIGenerator.GenerateFromJson(unityJsonPath, isWindow);
+            PS2UGUIGenerator.GenerateFromJson(unityJsonPath);
 
             result.success = true;
             result.prefabPath = unityJsonPath;
