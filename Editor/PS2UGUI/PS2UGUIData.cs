@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace GooseMarket.Editor
+namespace JulyToolkit.Editor
 {
     internal class UnityData
     {

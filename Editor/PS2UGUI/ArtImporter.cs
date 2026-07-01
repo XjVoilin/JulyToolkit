@@ -4,7 +4,7 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-namespace GooseMarket.Editor
+namespace JulyToolkit.Editor
 {
     public struct ImportResult
     {
@@ -25,8 +25,13 @@ namespace GooseMarket.Editor
         private int _targetIndex;
         private bool _isWindow;
 
-        private static readonly string[] TargetLabels = { "盒子 (Assets/Game/Art/Textures/)", "小游戏 (自定义路径)" };
-        private string _customTargetPath = "Assets/Game/MiniGames/Game101/Art/Textures";
+        private string _customTargetPath = PS2UGUISettings.GetDefaultMiniGameTargetPath();
+
+        private static string[] GetTargetLabels()
+        {
+            var boxPath = PS2UGUISettings.GetDefaultBoxTargetPath();
+            return new[] { $"盒子 ({boxPath}/)", "小游戏 (自定义路径)" };
+        }
 
         [MenuItem("Tools/PS2UGUI/Art Importer")]
         private static void Open()
@@ -52,7 +57,7 @@ namespace GooseMarket.Editor
             EditorGUILayout.EndHorizontal();
 
             GUILayout.Space(4);
-            _targetIndex = EditorGUILayout.Popup("目标位置", _targetIndex, TargetLabels);
+            _targetIndex = EditorGUILayout.Popup("目标位置", _targetIndex, GetTargetLabels());
             if (_targetIndex == 1)
             {
                 _customTargetPath = EditorGUILayout.TextField("自定义路径", _customTargetPath);
@@ -66,7 +71,7 @@ namespace GooseMarket.Editor
             if (GUILayout.Button("导入并生成 Prefab", GUILayout.Height(30)))
             {
                 var targetBase = _targetIndex == 0
-                    ? "Assets/Game/Art/Textures"
+                    ? PS2UGUISettings.GetDefaultBoxTargetPath()
                     : _customTargetPath.TrimEnd('/');
 
                 var result = Import(_sourceFolderPath, targetBase, _isWindow);

@@ -6,7 +6,7 @@ using System.Text;
 using UnityEditor;
 using UnityEngine;
 
-namespace GooseMarket.Editor
+namespace JulyToolkit.Editor
 {
     /// <summary>
     /// 将 PS/Figma 导出的布局 JSON 转换为 UnityData 对象

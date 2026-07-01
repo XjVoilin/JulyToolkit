@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace GooseMarket.Editor
+namespace JulyToolkit.Editor
 {
     /// <summary>
     /// 从布局 JSON 一键生成 Unity UI Prefab
@@ -17,8 +17,8 @@ namespace GooseMarket.Editor
     public static class PS2UGUIGenerator
     {
         // UITemplate.prefab 已不再需要，prefab 结构由代码直接创建
-        private const string FontMaterialPath = "Assets/Game/Art/Fonts/";
-        private const string DefaultFontAssetPath = "Assets/Game/Art/Fonts/Font_Main.asset";
+        private static string FontMaterialPath => PS2UGUISettings.GetFontMaterialPath();
+        private static string DefaultFontAssetPath => PS2UGUISettings.GetDefaultFontAssetPath();
         private const int SlicePixelTolerance = 5;
         private const int SliceMinimumCenterPixelsPerSide = 2;
         private const float ScaleCompensationEpsilon = 0.0001f;
